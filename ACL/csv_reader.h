@@ -17,8 +17,10 @@ private:
     std::streamsize m_buffer_data;
     std::streamsize m_buffer_pos;
 
+    bool has_more_columns();
     std::string next_column();
 
+    bool has_more_data();
     void ensure_open();
     void next_block();
 };

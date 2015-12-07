@@ -21,24 +21,91 @@ csv_reader::~csv_reader()
 
 bool csv_reader::has_more_rows()
 {
-    ensure_open();
-    return !m_file.eof();
+    return has_more_data();
 }
 
 std::list<std::string> csv_reader::next_row()
 {
     std::list<std::string> row;
 
-    while (m_buffer_pos < m_buffer_data && m_buffer[m_buffer_pos] == '\r') {
+    while (has_more_columns()) {
         row.push_back(next_column());
     }
 
     return row;
 }
 
+bool csv_reader::has_more_columns()
+{
+    if (!has_more_data())
+    {
+        return false;
+    }
+
+    return m_buffer[m_buffer_pos] == '\n';
+}
+
 std::string csv_reader::next_column()
 {
-    return "";
+    std::string col;
+
+    bool is_in_string = false;
+    bool was_in_string = false;
+    std::streamsize start = m_buffer_pos;
+
+    while (has_more_data())
+    {
+        if (!was_in_string && m_buffer[m_buffer_pos] == '\"')
+        {
+            if (!is_in_string) {
+                col.clear();
+                start = m_buffer_pos + 1;
+
+                is_in_string = true;
+            }
+            else {
+                col.append(m_buffer + start, m_buffer + m_buffer_pos);
+                is_in_string = false;
+                was_in_string = true;
+            }
+        }
+
+        if (!is_in_string && (m_buffer[m_buffer_pos] == ',' || m_buffer[m_buffer_pos] == '\r'))
+        {
+            ++m_buffer_pos;
+            break;
+        }
+
+        ++m_buffer_pos;
+        if (m_buffer_pos == m_buffer_data)
+        {
+            if (!was_in_string)
+            {
+                col.append(m_buffer + start, m_buffer + m_buffer_pos);
+            }
+            start = 0;
+        }
+    }
+
+    return col;
+}
+
+bool csv_reader::has_more_data()
+{
+    ensure_open();
+
+    if (m_buffer_pos < m_buffer_data)
+    {
+        return true;
+    }
+
+    if (!m_file.eof()) 
+    {
+        next_block();
+        return m_buffer_pos < m_buffer_data;
+    }
+
+    return false;
 }
 
 void csv_reader::ensure_open()
