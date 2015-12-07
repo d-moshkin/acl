@@ -17,6 +17,8 @@ private:
     std::streamsize m_buffer_data;
     std::streamsize m_buffer_pos;
 
+    void skip_eol();
+
     bool has_more_columns();
     std::string next_column();
 

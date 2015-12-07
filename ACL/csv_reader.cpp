@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "csv_reader.h"
 
+#include "string_utils.h"
+
 #define BUFFER_SIZE 1024
 
 csv_reader::csv_reader(const char* file_name)
@@ -14,13 +16,12 @@ csv_reader::csv_reader(const char* file_name)
 csv_reader::~csv_reader()
 {
     if (m_buffer != NULL)
-    {
         delete m_buffer;
-    }
 }
 
 bool csv_reader::has_more_rows()
 {
+    skip_eol();
     return has_more_data();
 }
 
@@ -28,51 +29,94 @@ std::list<std::string> csv_reader::next_row()
 {
     std::list<std::string> row;
 
+    skip_eol();
+
     while (has_more_columns()) {
-        row.push_back(next_column());
+        row.push_back(string_utils::trim(next_column()));
     }
 
+    skip_eol();
+
     return row;
+}
+
+void csv_reader::skip_eol()
+{
+    while (has_more_data() && (m_buffer[m_buffer_pos] == '\r' || m_buffer[m_buffer_pos] == '\n'))
+        ++m_buffer_pos;
 }
 
 bool csv_reader::has_more_columns()
 {
     if (!has_more_data())
-    {
         return false;
-    }
 
-    return m_buffer[m_buffer_pos] == '\n';
+    return m_buffer[m_buffer_pos] != '\n';
 }
 
 std::string csv_reader::next_column()
 {
     std::string col;
 
+    bool non_space_found = false;
     bool is_in_string = false;
     bool was_in_string = false;
     std::streamsize start = m_buffer_pos;
 
     while (has_more_data())
     {
-        if (!was_in_string && m_buffer[m_buffer_pos] == '\"')
+        switch (m_buffer[m_buffer_pos])
         {
-            if (!is_in_string) {
+        case '\"':
+            if (is_in_string)
+            {
+                col.append(m_buffer + start, m_buffer + m_buffer_pos);
+
+                is_in_string = false;
+                was_in_string = true;
+            }
+            else if (!was_in_string)
+            {
                 col.clear();
                 start = m_buffer_pos + 1;
 
                 is_in_string = true;
             }
-            else {
-                col.append(m_buffer + start, m_buffer + m_buffer_pos);
-                is_in_string = false;
-                was_in_string = true;
-            }
-        }
+            break;
 
-        if (!is_in_string && (m_buffer[m_buffer_pos] == ',' || m_buffer[m_buffer_pos] == '\r'))
-        {
-            ++m_buffer_pos;
+        case '\n':
+            if (is_in_string)
+            {
+                col.append(" ");
+                start = m_buffer_pos + 1;
+            }
+            break;
+
+        case '\r':
+            if (is_in_string)
+            {
+                col.append(m_buffer + start, m_buffer + m_buffer_pos);
+                start = m_buffer_pos + 1;
+            }
+            else
+            {
+                if (!was_in_string)
+                    col.append(m_buffer + start, m_buffer + m_buffer_pos);
+
+                ++m_buffer_pos;
+                return col;
+            }
+            break;
+
+        case ',':
+            if (!is_in_string)
+            {
+                if (!was_in_string)
+                    col.append(m_buffer + start, m_buffer + m_buffer_pos);
+
+                ++m_buffer_pos;
+                return col;
+            }
             break;
         }
 
@@ -80,9 +124,8 @@ std::string csv_reader::next_column()
         if (m_buffer_pos == m_buffer_data)
         {
             if (!was_in_string)
-            {
                 col.append(m_buffer + start, m_buffer + m_buffer_pos);
-            }
+
             start = 0;
         }
     }
@@ -95,9 +138,7 @@ bool csv_reader::has_more_data()
     ensure_open();
 
     if (m_buffer_pos < m_buffer_data)
-    {
         return true;
-    }
 
     if (!m_file.eof()) 
     {
@@ -115,7 +156,7 @@ void csv_reader::ensure_open()
         m_buffer_data = 0;
         m_buffer_pos = 0;
 
-        m_file.open(m_file_name, std::ios_base::in);
+        m_file.open(m_file_name, std::ios_base::in | std::ios_base::binary);
 
         if (m_file.fail())
         {
