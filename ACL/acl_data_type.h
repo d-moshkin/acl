@@ -29,15 +29,13 @@ class meta_data {};
     switch (data_type::field_##name##_type) {           \
     case field_string:                                  \
         field_writer_enumerator.push_back(              \
-            new acl_field_writer_string<data_type>(     \
-            (char* data_type::*) &data_type::field_##name, \
-            data_type::field_##name##_size));           \
+            new acl_field_writer_string<data_type, data_type::field_##name##_size>( \
+                &data_type::field_##name));             \
         break;                                          \
     case field_numeric:                                 \
         field_writer_enumerator.push_back(              \
-            new acl_field_writer_numeric<data_type>(    \
-            (char* data_type::*) &data_type::field_##name, \
-            data_type::field_##name##_size));           \
+            new acl_field_writer_numeric<data_type, data_type::field_##name##_size>( \
+                &data_type::field_##name));             \
         break;                                          \
     }
 

@@ -12,6 +12,8 @@ acl_writer::~acl_writer()
 
 void acl_writer::write_row(const std::list<std::string>& row)
 {
+    ensure_open();
+
     data_block block;
     m_meta_data.write(&block, row);
 
