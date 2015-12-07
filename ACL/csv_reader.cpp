@@ -157,27 +157,19 @@ void csv_reader::ensure_open()
         m_buffer_pos = 0;
 
         m_file.open(m_file_name, std::ios_base::in | std::ios_base::binary);
-
         if (m_file.fail())
-        {
             throw std::runtime_error("Can not open input file");
-        }
     }
 }
 
 void csv_reader::next_block()
 {
     if (m_buffer == NULL)
-    {
         m_buffer = new char[BUFFER_SIZE];
-    }
 
     m_file.read(m_buffer, BUFFER_SIZE);
-
     if (m_file.fail() && !m_file.eof())
-    {
         throw std::runtime_error("Can not read input file");
-    }
 
     m_buffer_data = m_file.gcount();
     m_buffer_pos = 0;

@@ -76,6 +76,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="acl_data_type.h" />
+    <ClInclude Include="acl_field_writer.h" />
+    <ClInclude Include="acl_field_writer_numeric.h" />
+    <ClInclude Include="acl_field_writer_string.h" />
     <ClInclude Include="acl_writer.h" />
     <ClInclude Include="csv_reader.h" />
     <ClInclude Include="stdafx.h" />
